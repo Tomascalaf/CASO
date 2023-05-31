@@ -1,0 +1,20 @@
+1. ok, debug desactivat
+2. ok
+3. ok
+4. ok
+5. ok, sequencia 1-16
+6. ok
+7. ok
+8. ok
+9. ok
+10. ok
+11. ok
+12. ok
+13. ok
+14. ok, La sortida diu que el modul esta en us. Per arreglaro s'hauria de 
+desmontar /dev/xrd0
+15. ok, falla reiser4 nomes, aixo passa perque mkfs per crear els sistemes 
+utilitza mkfs.reiser4, pero no esta intstalat. Es pot instalar amb el paquet 
+reiser4progs. LLavors, surt un altre error amb la comanda mount dient que el 
+tipus de sistema de fitxers reiser4 es desconegut.
+16. 

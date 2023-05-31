@@ -1,0 +1,45 @@
+1. Amb l'script executar.sh executo un programa x cops i envio la sortida.
+estandard a el fitxer out.csv
+-> executar.sh <binari> <x cops>
+Utilitzant aquest script he fet proves per els 5 programes i he pogut obtenir les mitjanes:
+
+sbrk: 0,008978 segons
+sbrk_incdec:0,064808 segons
+sched_yield: 0,333271 segons
+getpid: 0,005392 segons
+fork: 3,903119 segons (Amb portatil)
+
+out.ods -> Mitjanes claculades
+
+obiament getpid i sbrk(0) son les que tarden menys, ja que getpid es nomes 
+llegir un numero i sbrk(0) no fa res en realitat. sbrk amb increment segueix 
+sent rapid, ja que es una feina relativament senzilla.
+sched_yield es mes lent ja que es perd bastant temps amb el scheduler, havent 
+de sortir de el processador, anar a la cua de ready, i tornar a entrar a 
+execucio, ja que sent el unic process/thread actiu, no te sentit utilitzar 
+sched_yield.
+
+obiament fork es el mes lent degut a la execucio de tants processos, encara que 
+els fills no fagin res, els fet de tenir que crear tants processos i despres 
+matarlos es el que relateig mes el temps de execucio.
+
+2. Mirant amb objdump -d els binaris de els codis podem veure si el compilador ha eliminat o no les crides.
+
+3. El programa write-to-disk.c agafa com a argument la mida en MegaBytes y escriu un fitxer de aquesta mida(tamany de buffer=16B), posteriorment l'esborra y treu per la sortida estandard el temps que ha tardat.
+L'script disk.sh executa 10 cops write-to-disk.c, agafant tambe com a argument la mida en Bytes, envia la sortida estandars a out_disk.csv. 
+A out_disk.ods he generat la taula de rendiment.
+
+La diferencia es bastant petita, de l'orde de 0,5 MB/s, que son 512 Kb/s
+4. Per l'execucio com a root, he utilitzat l'script disk_sudo.sh, que es igual a disk.sh pero executant com a root.
+Envia les dades a out_disk.csv tambe, per el que tambe es pot generar la grafica.
+
+Al arxiu out_disk.ods es traben els resultats i una grafica on es pot comparar tambe amb sudo.
+Dona un bandwith de uns 29MB/s 
+
+5. El programa read-from-disk.c llegeix el fitxer fitxerLLegir de la carpeta on 
+s'executa. Aquest fitxer l'he creat amb el programa write-to-disk.c, modificant 
+el pathname de open. L'he creat de 1 GB. read-from-disk.c rep com a parametre 
+la mida a llegir en MB. read-from-disk llegeix amb un buffer de 16 bytes, al 
+igual que write-to-disk.
+
+El bandwith de lectura es mes baix del de escritura, al voltant de 14,5 MB/s.

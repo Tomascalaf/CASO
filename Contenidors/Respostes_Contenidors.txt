@@ -1,0 +1,84 @@
+1. 
+Dins:
+    1 root     init
+    4 root     /bin/syslogd
+   14 root     /bin/udhcpc
+   15 root     /bin/getty -L tty1 115200 vt100
+   16 root     init
+   17 root     /bin/sh
+   21 root     {ps} /bin/sh
+Fora: 
+   6200 ?        00:00:00   lxc-start
+   6201 ?        00:00:00     init
+   6217 ?        00:00:00       syslogd
+   6249 ?        00:00:00       udhcpc
+   6250 pts/0    00:00:00       getty
+   6251 pts/3    00:00:00       init
+
+   6256 pts/5    00:00:00 sh
+
+   6256 no apareix a l'arbre del contenidor amb $ps -eH, apareix a l'arbre de sddm:
+   
+   1253 ?        00:00:00   sddm
+   1307 tty1     00:01:44     Xorg
+   2094 ?        00:00:00     sddm-helper
+   2131 ?        00:00:00       startplasma-x11
+   2185 ?        00:00:00         ssh-agent
+   2243 ?        00:00:00         plasma_session
+   2292 ?        00:00:02           kded5
+   2913 ?        00:00:07             konsole
+   2992 pts/1    00:00:00               bash
+   5746 pts/1    00:00:00                 sudo
+   5747 pts/2    00:00:00                   sudo
+   5748 pts/2    00:00:00                     su
+   5749 pts/2    00:00:00                       bash
+   6254 pts/2    00:00:00                         3
+   6256 pts/5    00:00:00                           sh
+2. 
+El pid 1 correspon al pid 6201 de fora, el 4 al 6217, el 14 al 6249, el 15 al 6250, el 16 al 6251.
+
+3.
+Dins: 
+dr-xr-xr-x    9 root     root             0 May 17 13:15 1
+dr-xr-xr-x    9 root     root             0 May 17 13:16 14
+dr-xr-xr-x    9 root     root             0 May 17 13:15 15
+dr-xr-xr-x    9 root     root             0 May 17 13:16 16
+dr-xr-xr-x    9 root     root             0 May 17 13:15 17
+dr-xr-xr-x    9 root     root             0 May 17 13:39 34
+dr-xr-xr-x    9 root     root             0 May 17 13:16 4
+
+Fora: 
+dr-xr-xr-x  9 root             root                           0 May 17 13:15 6200 - lxc-start
+dr-xr-xr-x  9 root             root                           0 May 17 13:15 6201 - init
+dr-xr-xr-x  9 root             root                           0 May 17 13:15 6207
+dr-xr-xr-x  9 root             root                           0 May 17 13:15 6217 - syslogd
+dr-xr-xr-x  9 root             root                           0 May 17 13:15 6249 - udhcpc
+dr-xr-xr-x  9 root             root                           0 May 17 13:15 6250 - gettty
+dr-xr-xr-x  9 root             root                           0 May 17 13:15 6251 - init
+dr-xr-xr-x  9 root             root                           0 May 17 13:15 6254
+dr-xr-xr-x  9 root             root                           0 May 17 13:15 6256 - sh
+
+$ gdb -p 6251 funciona, per tant es pot debugar.
+
+4. $sudo lxc-cgroup -n busybox cpuset.cpus 0,2,4,6
+
+5. top, amb la opcio P. He comprovat que el process sh de el contenidor s'executa al processador 0, si es cambia el conjunt de CPUs, es veu reflectit al top.
+
+6. /proc/<pid>/stat conte l'ultim core utilitzat.
+
+7./var/lib/lxc/busybox/rootfs, aquest directori es igual a un directori arrel normal.
+
+8. En realitat es la comanda de busybox. Tenen el mateix inode i el mateix tamany. 
+
+9. Nomes el usuari i grup root. No hi ha mes usuaris no deamons, ja que aquests s'executen fora del contenidor.
+
+10. Afegir nou usuari:
+	Modificar /etc/passwd
+	Modificar /etc/group
+	Crear /home/usuari
+Si que funciona su - usuari.
+
+11.
+12. Fitxer rcS comentat udhcp. Fitxer inittab cambiat:
+::askfirst:/bin/sh
+en contes de la linia que comença amb console.

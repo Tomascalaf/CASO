@@ -1,0 +1,12 @@
+** using ext2 filesystem *******
+** Module myblkdrv is correctly loaded *******
+** creating ext2 filesystem *******
+Se está creando un sistema de ficheros con 4096 bloques de 4k y 4096 nodos-i
+
+Reservando las tablas de grupo: 0/1   hecho                            
+Escribiendo las tablas de nodos-i: 0/1   hecho                            
+Escribiendo superbloques y la información contable del sistema de archivos: 0/1   hecho
+
+** checking ext2 filesystem *******
+fsck de util-linux 2.37.2
+Test UNSUCCESSFUL!!!!!

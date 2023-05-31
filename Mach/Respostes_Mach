@@ -1,0 +1,94 @@
+1. Comproveu que el programa proc.c funciona correctament per l’usuari root, però dóna l’error respecte l’accés al port privilegiat del host si l’executa un usuari no privilegiat (per exemple, si l’executeu des de l’usuari "caso").
+
+2. Quin(s) processador(s) indica que tenim el programa proc.c? Podeu buscar a <mach/machine.h> els codis de CPU Type i CPU Subtype, i veure com estan definits els tipus de CPU d’Intel (Penryn, Nehalem…​), ARM (…​ Xscale, …​, V8, 64E…​ quins deuen correspondre als M1 i M2?) i PowerPC (601, …​, 620…​, 970…​).
+    processor_listCnt 2 -> Tenim 2 processadors, els dos son de aquest tipus:
+    CPU Type 7 -> x86
+    CPU Subtype 4 ->  ARCH1
+
+
+    CPU_TYPE_X86 7
+    CPUFAMILY_INTEL_PENRYN 0x78ea4fbc
+    CPU_SUBTYPE_486 4
+
+3. Expliqueu les altres característiques del processador que mostra proc.c. Obtingueu-les del fitxer <mach/processor_info.h>; localitzeu-hi l’estructura processor_basic_info.
+
+    running -> Diu si el processador esta corrent.
+    slot_num -> Numero de slot en el que s'ubica el processador.
+    is_master -> diu si el processador esta deprecated(en des-us)
+    is_main -> Diu si eaquest es el processador principal
+4. Comproveu que el programa memory-management.c dóna errors al compilar…​ com els podeu arreglar? (pista: falta una coma (,) a la línia 60). Són clars els missatges d’error que dóna el compilador                    GCC en aquesta situació?,
+    Si que son clares, marca extactament on falta la coma.
+
+5. Un cop arreglat el problema de la pregunta anterior, comproveu que el programa memory-management.c funciona correctament. Aquest programa usa host_processors i vm_map de forma intercalada, per demanar memòria 8 cops. L’ús de processor_info per demanar memòria queda fora del seu ús habitual, però funciona correctament. Responeu:
+
+        a. Quanta memòria assigna al procés cada crida a host_processors?
+            host processors no assigna memoria.
+            
+            Function - Return a list of send rights representing all processor ports.
+            kern_return_t   host_processors
+                (host_t                               host_priv,
+                 processor_port_array_t          processor_list,
+                 host_priv                      processor_count);
+            PARAMETERS
+            host_priv: [in host-control send right] The control port for the desired host.
+            processor_list: [out pointer to dynamic array of processor send rights] The set of processors existing on host_priv; no particular order is guaranteed.
+            processor_count: [out scalar] The number of ports returned in processor_list.
+
+        b. Quanta memòria assigna al procés cada crida a vm_map?
+            Asigna 8192 bytes, que son 8 kb.
+            
+            Function - Map the specified memory object to a region of virtual memory.
+
+        c. Quines adreces ens dóna el sistema en cada crida (host_processors i vm_map)?
+            Les vuit zones de 8 kb entre 0x10267d000 i 0x102688000(ultima direccio 0x102687000)
+
+        d. Són pàgines consecutives? (pista: us ajudarà, incrementar el número d’iteracions que fa el programa…​ per veure la seqüència d’adreces més clara).
+            Si.
+
+        e. Quines proteccions podem demanar a l’assignar memòria a un procés Mach? (pista: veieu el fitxer <mach/vm_prot.h>)
+            Read, write i execute.
+
+        f. Canvieu el programa per a que la memòria demanada sigui de només lectura. Quin error us dóna el sistema quan executeu aquesta nova versió del programa?
+            Bus error: 10
+
+        g. Després, afegiu una crida a vm_protect (…​) per tal de desprotegir la memòria per escriptura i que el programa torni a permetre les escriptures en la memòria assignada. Proveu la nova versió i comproveu que ara torna a funcionar correctament.
+            Si, s'ha de posar all, no write.
+
+8. Feu un programa, a partir del fitxer thread.c que creï un flux (thread_create) i li canviï l’estat (rsp, rip) amb les crides thread_get_state i thread_set_state, per engegar-lo posteriorment (thread_resume). Trobareu els tipus genèrics (independents de l’arquitectura) relacionats amb el context d’un flux en el fitxer <mach/thread_status.h>. La informació específica de com és l’estat d’un thread en la nostra arquitectura x86_64 la trobareu a <mach/i386/thread_status.h>: x86_thread_state_t (i a <mach/i386/_structs.h: _STRUCT_X86_THREAD_STATE64), i #defines x86_THREAD_STATE64(flavor), i x86_THREAD_STATE64_COUNT. Feu que el flux executi una funció amb un bucle infinit i comproveu amb el 'top' que està consumint processador (el top hauria de dir 99% CPU, pel programa - thread - que es situa a dalt de tot), abans de destruir-lo (thread_terminate).
+
+Ara feu que el thread faci un printf(…​). Per què us dóna un segmentation fault? Podeu esbrinar què passa?
+Tip
+	useu el lldb, i mireu quina instrucció està executant el thread que falla.
+
+	Segmentation fault 11 significa que s'ha intentat accedir a una zona de memoria invalida o sense permisos. Amb lldb es veu que el motiu es un EXC_BAD_ACCESS. Aixo segurament es deu a que no hi ha espai per les variables locals o l'stack no esta ben format. S'ha de mappejar la pila del task(Pila general), no nomes la del thread.
+
+9. Observeu que en el fitxer "tsd.h" tenim la definició d’una funció interessant per resoldre el problema de la pregunta anterior. Podeu solucionar el problema?
+
+void _thread_set_tsd_base(void *tsd_base);
+
+Afegint aquesta comanda al principi de la funcio de el thread no he conseguit solucionar el problema.
+
+Tip
+	Mireu també els comentaris que tenim al fitxer thread.c sobre com fer funcionar les variables privades per thread.
+
+10. Feu un programa que creï una task (task_create / task_terminate), i li doni memòria (vm_allocate), per després copiar-li una pàgina de dades (vm_write) Si heu fet la comanda [mps] (exercici 6), comproveu que la vostra task només té la memòria que li heu donat, haurieu d’obtenir una informació com:
+
+virtual size 16384 # si li heu demanat 16KB (4 pàgines)
+resident size 0
+
+Comproveu que amb la comanda ps aquesta task també es veu:
+
+$ ps -e -o pid,stat,sz,rss,args
+PID     Stat    SZ  RSS Args
+1670    p       16K 0   ?
+
+task_create no funciona. Com que no funciona, tampoc he pogut provar el vm_allocate i vm_write.
+
+11. Feu un programa que accepti un pid i una adreça com a paràmetres, faci un vm_read de l’adreça donada en el procés donat i mostri la informació obtinguda. Creieu que això mateix es pot fer en UNIX/Linux? I en Windows?
+
+En el programa utilitzo task_for_pid(), per despres utilitzar vm_read(). No acaba de funcionar ja que sempre retorna invalid address i no se perque. Ademes, task_for_pid() dona error a menys que s'executi el programa com a sudo.
+
+En linux es podria fer llegint /proc/<pid>/maps.
+En Windows s'hauria de fer servir la funcio ReadProcessMemory(). S'ha de tenir en compte que hi ha adreçes que no es poden llegir, i s'ha de controlar.
+
+
